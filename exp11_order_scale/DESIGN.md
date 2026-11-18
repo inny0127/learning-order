@@ -57,6 +57,26 @@
 If H-B1 fails (the order gap does not shrink), that is reported as evidence against
 "SGD ≈ ideal compressor" at these scales.
 
+## Frozen settings for Part B (fixed before any run)
+
+| Size | Layers | d_model | Heads | Parameters | Pretraining LR | Fine-tuning LR |
+|---|---|---|---|---|---|---|
+| m1 | 2 | 128 | 4 | 0.94M | 2e-3 | 6.7e-4 |
+| m4 | 4 | 256 | 4 | 4.23M | 1.5e-3 | 5e-4 |
+| m16 | 8 | 384 | 6 | 15.8M | 1e-3 | 3.3e-4 |
+| m64 | 12 | 640 | 10 | 61.7M | 6e-4 | 2e-4 |
+| m128 | 12 | 896 | 14 | 119.4M | 4e-4 | 1.3e-4 |
+
+The fine-tuning LR is 5e-4 times the ratio of the size's pretraining LR to m4's.
+
+- **Prior per size.** Every size is pretrained on the same 20M TinyStories tokens: one epoch,
+  batch 32, cosine schedule, as in Exp 04. Its RHO reference model is that prior trained
+  1,500 steps on holdout data.
+- **Runs.** The six orders of Exp 05 x seeds 1-3, with the path ensemble on: 90 runs.
+- **Order spread.** Δ(N) = (max − min) / mean, over the six orders, of the seed-mean learnable
+  code length.
+- **Not in Part B.** The TinyStories-only control and Part A are deferred.
+
 ## Compute and cost
 
 About 20-40 GPU hours on a rented RTX 4090 or 5090: about $7-14 on a 4090, $14-28 on a 5090.

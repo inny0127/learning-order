@@ -191,7 +191,8 @@ def main():
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--n_per_group", type=int, default=12_000)
     ap.add_argument("--batch", type=int, default=32)
-    ap.add_argument("--lr", type=float, default=5e-4)
+    ap.add_argument("--lr", type=float, default=None, help="default 5e-4 at m4, scaled by size")
+    ap.add_argument("--size", default="m4", help="Exp 11: model size preset (exp04 curriculum.SIZES)")
     ap.add_argument("--cand", type=int, default=4)
     ap.add_argument("--gamma", type=float, default=0.1)
     ap.add_argument("--lp_scale", type=float, default=0.05)
@@ -201,6 +202,9 @@ def main():
     ap.add_argument("--skip_margin", type=float, default=0.03)
     ap.add_argument("--tag", default="", help="suffix for output names (Exp 08 variants)")
     a = ap.parse_args()
+    cu.SIZE = a.size
+    if a.lr is None:
+        a.lr = cu.ft_lr()
     torch.set_num_threads(a.threads)
     run(a)
 

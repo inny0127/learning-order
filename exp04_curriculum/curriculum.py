@@ -39,8 +39,22 @@ TRAIN_TIDS = [1, 2, 3, 4, 5, 6]  # bios use these; templates 0 and 7 are probe-o
 CTX = 128
 
 
+# Model sizes for Exp 11 (order spread vs scale). "m4" is the 4-layer GPT of Exp 04-10.
+SIZES = {"m1": dict(n_layer=2, n_head=4, d_model=128, d_ff=512), "m4": {},
+         "m16": dict(n_layer=8, n_head=6, d_model=384, d_ff=1536),
+         "m64": dict(n_layer=12, n_head=10, d_model=640, d_ff=2560),
+         "m128": dict(n_layer=12, n_head=14, d_model=896, d_ff=3584)}
+PRIOR_LR = {"m1": 2e-3, "m4": 1.5e-3, "m16": 1e-3, "m64": 6e-4, "m128": 4e-4}
+SIZE = "m4"
+
+
+def ft_lr():
+    """Fine-tuning LR, scaled like the pretraining LR (5e-4 at m4)."""
+    return 5e-4 * PRIOR_LR[SIZE] / PRIOR_LR["m4"]
+
+
 def cfg():
-    return GPTConfig(ctx=CTX, mem_layer=99)  # plain 4-layer GPT, no memory layer
+    return GPTConfig(ctx=CTX, mem_layer=99, **SIZES[SIZE])  # plain GPT, no memory layer
 
 
 # ------------------------------------------------------------------ data
@@ -151,11 +165,12 @@ def prior(a):
     d = np.load(os.path.join(a.data, "prior.npy"))
     W = CTX + 1
     order = np.random.default_rng(0).permutation(len(d) // W)
-    opt = torch.optim.AdamW(model.parameters(), lr=1.5e-3, betas=(0.9, 0.95), weight_decay=0.1)
+    plr = PRIOR_LR[SIZE]
+    opt = torch.optim.AdamW(model.parameters(), lr=plr, betas=(0.9, 0.95), weight_decay=0.1)
     steps = len(order) // a.batch
     t0 = time.time()
     for s in range(steps):
-        lr = 1.5e-3 * min(1, (s + 1) / 200) * (0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * s / steps)))
+        lr = plr * min(1, (s + 1) / 200) * (0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * s / steps)))
         for g in opt.param_groups:
             g["lr"] = lr
         x, y = to_xy(np.stack([d[i * W:(i + 1) * W] for i in order[s * a.batch:(s + 1) * a.batch]]), a.device)
@@ -167,7 +182,7 @@ def prior(a):
     hold = {"stories": np.load(os.path.join(a.data, "val.npy"))[:300_000],  # not the val windows used for eval
             "facts": np.load(os.path.join(a.data, "hold_facts.npy"))}
     rng = np.random.default_rng(5)
-    opt = torch.optim.AdamW(model.parameters(), lr=a.lr, betas=(0.9, 0.95), weight_decay=0.0)
+    opt = torch.optim.AdamW(model.parameters(), lr=a.lr if SIZE == "m4" else ft_lr(), betas=(0.9, 0.95), weight_decay=0.0)
     for s in range(a.ref_steps):
         src = hold["stories" if s % 2 else "facts"]
         st = rng.integers(0, len(src) - CTX - 1, a.batch)
@@ -279,7 +294,10 @@ def main():
     ap.add_argument("--gamma", type=float, default=0.1, help="Exp3 exploration")
     ap.add_argument("--lp_scale", type=float, default=0.05, help="relative gain that counts as reward 1")
     ap.add_argument("--eval_every", type=int, default=150)
+    ap.add_argument("--size", choices=list(SIZES), default="m4")
     a = ap.parse_args()
+    global SIZE
+    SIZE = a.size
     torch.set_num_threads(a.threads)
     os.makedirs(a.runs, exist_ok=True)
     {"prep": prep, "prior": prior, "run": run}[a.stage](a)
