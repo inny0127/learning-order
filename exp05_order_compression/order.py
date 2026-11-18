@@ -165,6 +165,8 @@ def run(a):
             print(f"[{a.order} s{a.seed}] {s + 1}/{steps} code {bits.sum() / ((s + 1) * a.batch * cu.CTX):.3f} bits/tok"
                   f" val {rec['val_loss']:.3f} facts {rec['fact_acc']:.3f}/{rec['fact_acc_heldout']:.3f}"
                   f" ({spent + time.time() - t0:.0f}s)", flush=True)
+            if os.path.exists(stem + ".state.pt"):  # one copy on disk: path snapshots of large models are GBs
+                os.remove(stem + ".state.pt")
             torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "rng": rng.getstate(),
                         "nrng": nrng.bit_generator.state, "left": left, "logw": logw, "bits": bits,
                         "curve": curve, "step": s + 1, "seconds": spent + time.time() - t0, "snaps": snaps, "trained": trained},
