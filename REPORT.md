@@ -245,7 +245,18 @@ link between data order and compression.
    in. Then predict the critical interleaving point K* from T, before sweeping K. Check the
    prediction across settings and on real LLM fine-tuning. If it holds, it gives a
    quantitative rule for how densely counterexamples or safety data must be interleaved.
-3. **Choosing data mixtures by code length.** Test whether training-loss logs alone can pick
+3. **Compression predicts the path, not the endpoint: data order, Bayesianity and scale.**
+   For an exact Bayesian learner, prequential code length is order-invariant. So the spread
+   of code length across orders of the same data measures how far SGD is from Bayesian
+   inference. Planned work, pre-registered in `exp11_order_scale/DESIGN.md`:
+   - **Part A.** Re-run a recent fixed-order result (prequential regret tracks the final
+     model's generalisation gap on CIFAR ResNets) under varied orders.
+   - **Part B.** Test whether the order gap shrinks with model size, from 1M to 128M
+     parameters.
+
+   The order dependence of training-time code length against model scale appears unstudied
+   in the work reviewed so far.
+4. **Choosing data mixtures by code length.** Test whether training-loss logs alone can pick
    a good data mixture, without expensive evaluation.
 
 ## Appendix: Experiments and files
