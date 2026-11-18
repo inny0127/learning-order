@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+exp*/data/
+exp*/runs/
+exp*/runs08/
+exp*/runs09/
