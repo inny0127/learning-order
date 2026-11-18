@@ -1,0 +1,2 @@
+resumed at step 1350
+[rho s1] 1500/1500 code 3.967 bits/tok val 2.619 facts 0.193/0.219 (2154s)

@@ -1,6 +1,6 @@
 # What to Learn, and in What Order: Self-Directed Learning in Language Models Through the Lens of Compression
 
-**Research report (Exp 01-10)** · November 2026
+**Research report (Exp 01-11)** · November 2026
 Code, data pipelines, pre-registrations and every run: `github.com/inny0127/learning-order`
 
 > **Method note.** Every experiment was pre-registered. Hypotheses and pass/fail criteria were
@@ -16,7 +16,7 @@ language model gets the ability to choose its own next training data? And how do
 choice relate to the view, often associated with Ilya Sutskever, that compression is
 generalisation?
 
-Seven pre-registered experiments (Exp 04-10, 126 training runs) used small GPT models and
+Eight pre-registered experiments (Exp 04-11, 216 training runs) used small GPT models and
 controlled data. The main findings:
 
 1. **Curiosity alone falls into traps.** A model that picks the data with the highest loss
@@ -40,6 +40,11 @@ controlled data. The main findings:
    blocks and counterexample blocks alternated. That alone decided whether the model learnt
    the rule or the shortcut. Rule belief jumped from 0.10 to 0.76 between 32 and 64 block
    pairs. (Exp 07, 09)
+6. **The path result survives scale; order dependence shrinks only slowly.** From 0.9M to
+   119M parameters, code length kept predicting the path ensemble's generalisation (ρ ≥ 0.91
+   at every size). The spread of code length across orders fell as a power law in model
+   size, but with an exponent of only −0.054. Within this range, bigger models are barely
+   more order-invariant, the property an exact Bayesian learner would have. (Exp 11)
 
 ---
 
@@ -218,6 +223,45 @@ link between data order and compression.
   dataset was a quarter of Exp 05's size, which limits the comparison.
 - **Interpretation.** 30 episodes were most likely too few to learn the value function.
 
+### 3.7 Exp 11: Order sensitivity versus model size
+
+![Exp 11](exp11_order_scale/results/scale.png)
+
+An exact Bayesian learner codes the same data in the same number of bits whatever the order.
+So the spread of code length across orders measures how far SGD is from Bayesian inference.
+Exp 05's six orders were re-run at five sizes, with 3 seeds each: 90 runs. Each size had its
+own prior, pretrained on the same 20M tokens.
+
+| Size | Params | Mean code | Order spread Δ | ρ(code, path ensemble) | ρ(code, final model) |
+|---|---|---|---|---|---|
+| m1 | 0.9M | 2.39 | 0.760 | 0.99 | 0.19 |
+| m4 | 4.2M | 1.90 | 0.719 | 0.94 | 0.22 |
+| m16 | 15.8M | 1.69 | 0.655 | 0.92 | 0.29 |
+| m64 | 61.7M | 1.55 | 0.605 | 0.91 | 0.19 |
+| m128 | 119.4M | 1.50 | 0.594 | 0.91 | 0.22 |
+
+- **H-B1 held.** Δ shrinks at every step in size.
+- **H-B2 held.** The shrinkage is a power law, Δ ∝ N^−0.054, with R² = 0.99.
+- **H-B3 held.** At every size, ρ(code, path ensemble) ≥ 0.91, while ρ(code, final model)
+  stays at 0.19-0.29.
+- **Replication check.** At m4 the absolute range across orders was 1.37 bits/token. Exp 05
+  reported 1.36.
+- **Exploratory.** The absolute range shrinks faster than Δ (slope −0.15). Static orders
+  (hard first, easy first) cause most of the spread. Among adaptive orders it is only
+  7-10%.
+
+**Interpretation.** Scale makes SGD only slightly more Bayesian, in this sense. At the
+fitted exponent, halving the order spread would need about 2^18 times more parameters. So
+order is not something scale will wash out, at least up to 10^8 parameters. Meanwhile the
+Exp 08 result, that compression describes the path rather than the endpoint, holds at
+every size tested.
+
+Limitations:
+- Data and steps were fixed, so size is confounded with how far each model is from
+  convergence.
+- The two largest models share a depth of 12 layers.
+- Each cell has three seeds. Details are in `exp11_order_scale/RESULTS.md`.
+
 ## 4. Discussion
 
 | Finding | Evidence | Meaning |
@@ -226,9 +270,10 @@ link between data order and compression.
 | Order changes compression | Exp 05; ρ 0.21 → 0.96 in Exp 08 | Compression-generalisation is a property of the path |
 | Compression progress rediscovers structure | Exp 06, τ = 1.0 | The rediscovered syllabus is not the best for generalisation |
 | Interleaving decides belief | Exp 09, transition at K = 32-64 | Counterexample spacing has a critical point |
+| Order dependence shrinks only slowly with scale | Exp 11, Δ ∝ N^−0.054 | Scale alone does not make SGD order-invariant |
 
 **Limitations.**
-- The models are small (3.8M parameters) and the data synthetic.
+- The models are small (Exp 04-10: 3.8M parameters; Exp 11: up to 119M), and the data partly synthetic.
 - Each result rests on three seeds.
 - Some key contrasts were exploratory, not pre-registered: Exp 07's interleaved vs blocked
   comparison is one of them.
@@ -248,14 +293,12 @@ link between data order and compression.
 3. **Compression predicts the path, not the endpoint: data order, Bayesianity and scale.**
    For an exact Bayesian learner, prequential code length is order-invariant. So the spread
    of code length across orders of the same data measures how far SGD is from Bayesian
-   inference. Planned work, pre-registered in `exp11_order_scale/DESIGN.md`:
+   inference. Part B is done (Sec. 3.7): the order gap shrinks only as N^−0.054 from 0.9M to
+   119M parameters. Remaining work, pre-registered in `exp11_order_scale/DESIGN.md`:
    - **Part A.** Re-run a recent fixed-order result (prequential regret tracks the final
      model's generalisation gap on CIFAR ResNets) under varied orders.
-   - **Part B.** Test whether the order gap shrinks with model size, from 1M to 128M
-     parameters.
-
-   The order dependence of training-time code length against model scale appears unstudied
-   in the work reviewed so far.
+   - **Also open.** Untangle scale from training length (compute-matched runs), and extend
+     to 1B parameters.
 4. **Choosing data mixtures by code length.** Test whether training-loss logs alone can pick
    a good data mixture, without expensive evaluation.
 
@@ -270,3 +313,4 @@ link between data order and compression.
 | Exp 08 | Path ensemble; refusal | `exp05_order_compression/DESIGN_exp08.md` | `exp05_order_compression/results08/` |
 | Exp 09 | Syllabus with review; block count and phase transition | `exp06_worlds/DESIGN_exp09.md` | `exp06_worlds/results09/` |
 | Exp 10 | Value-function teacher | `exp10_value/DESIGN.md` | `exp10_value/results/` |
+| Exp 11 | Order sensitivity vs model size (Part B) | `exp11_order_scale/DESIGN.md` | `exp11_order_scale/RESULTS.md` |

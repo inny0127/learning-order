@@ -1,6 +1,6 @@
-# Exp 11 (planned): Compression predicts the path, not the endpoint: data order, Bayesianity and scale
+# Exp 11: Compression predicts the path, not the endpoint: data order, Bayesianity and scale
 
-**Status: draft pre-registration. Nothing has been run.**
+**Status: Part B was run on 2026-11-18 with the settings frozen below. Results are in `RESULTS.md`. Part A has not been run.**
 
 ## Motivation
 
